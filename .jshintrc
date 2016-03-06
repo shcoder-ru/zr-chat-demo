@@ -1,0 +1,30 @@
+{
+  "node": true,
+  "browser": true,
+  "esnext": true,
+  "bitwise": true,
+  "camelcase": true,
+  "curly": true,
+  "eqeqeq": true,
+  "immed": true,
+  "indent": false,
+  "latedef": true,
+  "newcap": true,
+  "noarg": true,
+  "quotmark": "single",
+  "regexp": true,
+  "undef": false,
+  "unused": false,
+  "strict": true,
+  "trailing": true,
+  "smarttabs": true,
+  "globals": {
+    "$": false,
+    "app": true
+  },
+  "sub": true,
+  "boss": true,
+  "eqnull": true,
+  "multistr": true,
+  "loopfunc": true
+}
