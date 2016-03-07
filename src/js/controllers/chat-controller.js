@@ -2,13 +2,16 @@
  * Controllers/Chat
  */
 
-;(function(global, undefined){
+;(function(global, Controller, ChatModel, ChatView, undefined){
   'use strict';
 
   var ChatController = global.ChatController = Controller.extend({
-    // @TODO methods and properties
+    view: new ChatView({
+      tplList: 'chatList',
+      tplListItem: 'chatListItem'
+    })
   });
 
   return ChatController;
 
-})(window);
+})(window, Controller, ChatModel, ChatView);

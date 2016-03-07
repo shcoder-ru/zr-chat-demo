@@ -2,13 +2,15 @@
  * Views/Chat
  */
 
-;(function(global, undefined){
+;(function(global, View, undefined){
   'use strict';
 
   var ChatView = global.ChatView = View.extend({
-    // @TODO methods and properties
+    init: function(props){
+      console.log(props);
+    }
   });
 
   return ChatView;
 
-})(window);
+})(window, View);

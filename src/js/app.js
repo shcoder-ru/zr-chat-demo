@@ -1,4 +1,4 @@
 ;(function(ChatController){
   'use strict';
-  // @TODO initial ChatController
+  var chatCtrl = new ChatController();
 })(ChatController);

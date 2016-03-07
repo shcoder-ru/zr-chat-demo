@@ -9837,11 +9837,17 @@ return jQuery;
 ;(function(global, $, undefined){
   'use strict';
 
-  var Base = global.Base = function(){};
+  var Base = global.Base = function(){
+    this.init.apply(this, arguments);
+  };
+
+  $.extend(Base.prototype, {
+    init: function(){}
+  });
 
   Base.extend = function(protoProps, staticProps){
     var child, parent = this;
-    if (protoProps && protoProps.constructor) {
+    if (protoProps && protoProps.hasOwnProperty('constructor')){
       child = protoProps.constructor;
     } else {
       child = function(){
@@ -9849,7 +9855,8 @@ return jQuery;
       };
     }
     $.extend(child, parent, staticProps);
-    $.extend(child.prototype, parent.prototype, protoProps);
+    child.prototype = Object.create(parent.prototype);
+    $.extend(child.prototype, protoProps);
     child.prototype.constructor = child;
     child.__super__ = parent.prototype;
     return child;
@@ -9866,7 +9873,13 @@ return jQuery;
   'use strict';
 
   var Model = global.Model = Base.extend({
-    // @TODO methods and properties
+    update: function(){},
+    save: function(){},
+    remove: function(){}
+  }, {
+    create: function(){},
+    get: function(){},
+    find: function(){}
   });
 
   return Model;
@@ -9876,7 +9889,7 @@ return jQuery;
  * Base/View
  */
 
-;(function(global, $, undefined){
+;(function(global, $, Base, undefined){
   'use strict';
 
   var View = global.View = Base.extend({
@@ -9885,12 +9898,12 @@ return jQuery;
 
   return View;
 
-})(window, jQuery);
+})(window, jQuery, Base);
 /**
  * Base/Controller
  */
 
-;(function(global, $, undefined){
+;(function(global, $, Base, undefined){
   'use strict';
 
   var Controller = global.Controller = Base.extend({
@@ -9899,50 +9912,70 @@ return jQuery;
 
   return Controller;
 
-})(window, jQuery);
+})(window, jQuery, Base);
 /**
  * Models/Chat
  */
 
-;(function(global, undefined){
+;(function(global, Model, undefined){
   'use strict';
 
   var ChatModel = global.ChatModel = Model.extend({
-    // @TODO methods and properties
+    schema: {
+      id: {
+        type: 'String',
+        length: 20,
+        id: 1
+      },
+      text: {
+        type: 'String',
+        required: true,
+        length: 500
+      },
+      date: {
+        type: 'Date',
+        required: true
+      }
+    }
   });
 
   return ChatModel;
 
-})(window);
+})(window, Model);
 /**
  * Views/Chat
  */
 
-;(function(global, undefined){
+;(function(global, View, undefined){
   'use strict';
 
   var ChatView = global.ChatView = View.extend({
-    // @TODO methods and properties
+    init: function(props){
+      console.log(props);
+    }
   });
 
   return ChatView;
 
-})(window);
+})(window, View);
 /**
  * Controllers/Chat
  */
 
-;(function(global, undefined){
+;(function(global, Controller, ChatModel, ChatView, undefined){
   'use strict';
 
   var ChatController = global.ChatController = Controller.extend({
-    // @TODO methods and properties
+    view: new ChatView({
+      tplList: 'chatList',
+      tplListItem: 'chatListItem'
+    })
   });
 
   return ChatController;
 
-})(window);
+})(window, Controller, ChatModel, ChatView);
 ;(function(ChatController){
   'use strict';
-  // @TODO initial ChatController
+  var chatCtrl = new ChatController();
 })(ChatController);

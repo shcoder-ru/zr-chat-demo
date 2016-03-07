@@ -6,7 +6,13 @@
   'use strict';
 
   var Model = global.Model = Base.extend({
-    // @TODO methods and properties
+    update: function(){},
+    save: function(){},
+    remove: function(){}
+  }, {
+    create: function(){},
+    get: function(){},
+    find: function(){}
   });
 
   return Model;

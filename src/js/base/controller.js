@@ -2,7 +2,7 @@
  * Base/Controller
  */
 
-;(function(global, $, undefined){
+;(function(global, $, Base, undefined){
   'use strict';
 
   var Controller = global.Controller = Base.extend({
@@ -11,4 +11,4 @@
 
   return Controller;
 
-})(window, jQuery);
+})(window, jQuery, Base);

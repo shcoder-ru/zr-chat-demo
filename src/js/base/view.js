@@ -2,7 +2,7 @@
  * Base/View
  */
 
-;(function(global, $, undefined){
+;(function(global, $, Base, undefined){
   'use strict';
 
   var View = global.View = Base.extend({
@@ -11,4 +11,4 @@
 
   return View;
 
-})(window, jQuery);
+})(window, jQuery, Base);
