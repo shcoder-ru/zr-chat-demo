@@ -2,16 +2,16 @@
  * Controllers/Chat
  */
 
-;(function(global, Controller, ChatModel, ChatView, undefined){
+;(function(global, Controller, ChatModel, ChatListView, undefined){
   'use strict';
 
   var ChatController = global.ChatController = Controller.extend({
-    view: new ChatView({
-      tplList: 'chatList',
-      tplListItem: 'chatListItem'
-    })
+    view: new ChatListView(),
+    init: function(){
+      this.view.renderTo('#chatView');
+    }
   });
 
   return ChatController;
 
-})(window, Controller, ChatModel, ChatView);
+})(window, Controller, ChatModel, ChatListView);

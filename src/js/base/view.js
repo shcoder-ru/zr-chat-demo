@@ -6,7 +6,14 @@
   'use strict';
 
   var View = global.View = Base.extend({
-    // @TODO methods and properties
+    renderTo: function(){
+      return this;
+    },
+    $: $
+  }, {
+    template: function(templateId){
+      return $('#'+templateId).html();
+    }
   });
 
   return View;

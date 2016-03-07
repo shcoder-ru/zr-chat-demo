@@ -9893,7 +9893,14 @@ return jQuery;
   'use strict';
 
   var View = global.View = Base.extend({
-    // @TODO methods and properties
+    renderTo: function(){
+      return this;
+    },
+    $: $
+  }, {
+    template: function(templateId){
+      return $('#'+templateId).html();
+    }
   });
 
   return View;
@@ -9943,38 +9950,70 @@ return jQuery;
 
 })(window, Model);
 /**
- * Views/Chat
+ * Views/ChatListItem
  */
 
 ;(function(global, View, undefined){
   'use strict';
 
-  var ChatView = global.ChatView = View.extend({
-    init: function(props){
-      console.log(props);
+  var ChatListItemView = global.ChatListItemView = View.extend({
+    template: View.template('chatListItem'),
+    renderTo: function(parent){
+      if (!parent){
+        return this;
+      }
+      this.el = this.$(this.template);
+      this.$(parent).append(this.el);
+      return this;
     }
   });
 
-  return ChatView;
+  return ChatListItemView;
 
 })(window, View);
+/**
+ * Views/ChatList
+ */
+
+;(function(global, View, ChatListItemView, undefined){
+  'use strict';
+
+  var ChatListView = global.ChatListView = View.extend({
+    itemsIndex: {},
+    template: View.template('chatList'),
+    renderTo: function(parent){
+      if (!parent){
+        return this;
+      }
+      this.el = this.$(this.template);
+      this.$(parent).append(this.el);
+      return this;
+    },
+    createItem: function(data){
+      // @TODO new ChatListItemView and append to itemsIndex
+    }
+  });
+
+  return ChatListView;
+
+})(window, View, ChatListItemView);
 /**
  * Controllers/Chat
  */
 
-;(function(global, Controller, ChatModel, ChatView, undefined){
+;(function(global, Controller, ChatModel, ChatListView, undefined){
   'use strict';
 
   var ChatController = global.ChatController = Controller.extend({
-    view: new ChatView({
-      tplList: 'chatList',
-      tplListItem: 'chatListItem'
-    })
+    view: new ChatListView(),
+    init: function(){
+      this.view.renderTo('#chatView');
+    }
   });
 
   return ChatController;
 
-})(window, Controller, ChatModel, ChatView);
+})(window, Controller, ChatModel, ChatListView);
 ;(function(ChatController){
   'use strict';
   var chatCtrl = new ChatController();
