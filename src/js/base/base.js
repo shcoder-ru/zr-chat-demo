@@ -12,7 +12,6 @@
   $.extend(Base.prototype, {
     extend: $.extend,
     each: $.each,
-    map: $.map,
     deferred: $.Deferred,
     init: function(){},
   });

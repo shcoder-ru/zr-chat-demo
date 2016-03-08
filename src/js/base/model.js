@@ -95,9 +95,10 @@
         .storage
         .fetch()
         .pipe(function(list){
-          return Self.prototype.map(list, function(item){
-            return new Self(item);
+          Self.prototype.each(list, function(i, item){
+            list[i] = new Self(item);
           });
+          return list;
         });
     }
   });

@@ -10,7 +10,9 @@
     init: function(){
 
       var self = this;
+
       // MessageModel.create({
+      //   parentId: 1457464532891,
       //   text: 'Test text'
       // }).done(function(item){
       //   console.log(item);
@@ -23,9 +25,7 @@
           console.log(items);
 
           self.view
-            .setData({
-              items: items
-            })
+            .setData({items: items})
             .render('#chatView');
 
         })

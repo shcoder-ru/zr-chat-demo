@@ -9,11 +9,22 @@
     itemsIndex: {},
     template: View.template('chatList'),
     render: function(parent){
-      // @TOD update
-      return this.__super__.render.call(this, parent);
+      var self = this;
+      this.__super__.render.call(this, parent);
+      if (this.data.items && this.data.items.length > 0){
+        this.each(this.data.items, function(key, item){
+          if (item.getAttribute('parentId') === 0){
+            self.addItem(item);
+          }
+        });
+      }
+      return this;
     },
-    addItem: function(data){
-      // @TODO new ChatListItemView and append to itemsIndex
+    addItem: function(item){
+      var itemView = new ChatListItemView();
+      itemView
+        .setData({item: item})
+        .render(this.el);
     }
   });
 
