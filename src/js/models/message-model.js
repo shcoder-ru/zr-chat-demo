@@ -9,12 +9,25 @@
     storage: new Storage('message'),
     schema: {
       id: {
-        type: 'String',
+        type: 'Number',
         required: false
+      },
+      parentId: {
+        type: 'Number',
+        required: false,
+        defaultValue: 0
       },
       text: {
         type: 'String',
         required: true
+      },
+      created: {
+        type: 'Date',
+        required: false
+      },
+      updated: {
+        type: 'Date',
+        required: false
       }
     }
   });

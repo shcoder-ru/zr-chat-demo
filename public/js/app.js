@@ -9902,10 +9902,18 @@ return jQuery;
         throw new TypeError('property "'+key+'" is required');
       }
       if (typeof value === 'undefined'){
-        return this;
+        if ('defaultValue' in this.schema[key]){
+          value = this.schema[key].defaultValue;
+        } else {
+          return this;
+        }
       }
       if (this.schema[key].type){
-        this._attributes[key] = global[this.schema[key].type](value);
+        if (this.schema[key].type === 'Date'){
+          this._attributes[key] = new global[this.schema[key].type](value);
+        } else {
+          this._attributes[key] = global[this.schema[key].type](value);
+        }
       } else {
         this._attributes[key] = value;
       }
@@ -9923,7 +9931,10 @@ return jQuery;
         return this.storage
           .update(this._attributes.id, this._attributes)
           .pipe(function(item){
-             return new self.constructor(item);
+            self.each(self.schema, function(key){
+              self.setAttribute(key, item[key]);
+            });
+             return self;
           });
       }
       return this.storage
@@ -9938,12 +9949,8 @@ return jQuery;
   }, {
     create: function(value){
       var Self = this;
-      return Self.prototype
-        .storage
-        .create(value)
-        .pipe(function(item){
-          return new Self(item);
-        });
+      var item = new Self(value);
+      return item.save();
     },
     get: function(id){
       var Self = this;
@@ -10118,12 +10125,25 @@ return jQuery;
     storage: new Storage('message'),
     schema: {
       id: {
-        type: 'String',
+        type: 'Number',
         required: false
+      },
+      parentId: {
+        type: 'Number',
+        required: false,
+        defaultValue: 0
       },
       text: {
         type: 'String',
         required: true
+      },
+      created: {
+        type: 'Date',
+        required: false
+      },
+      updated: {
+        type: 'Date',
+        required: false
       }
     }
   });
@@ -10181,25 +10201,30 @@ return jQuery;
     view: new ChatListView(),
     init: function(){
 
-      // var newItem = new MessageModel({
+      var self = this;
+      // MessageModel.create({
       //   text: 'Test text'
+      // }).done(function(item){
+      //   console.log(item);
       // });
-      // newItem.save();
 
       MessageModel
         .find()
         .done(function(items){
-          console.log('items:', items);
+
+          console.log(items);
+
+          self.view
+            .setData({
+              items: items
+            })
+            .render('#chatView');
+
         })
         .fail(function(err){
           console.log('err:', err);
         });
 
-      this.view
-        .setData({
-          items: []
-        })
-        .render('#chatView');
     }
   });
 

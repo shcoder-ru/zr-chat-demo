@@ -30,10 +30,18 @@
         throw new TypeError('property "'+key+'" is required');
       }
       if (typeof value === 'undefined'){
-        return this;
+        if ('defaultValue' in this.schema[key]){
+          value = this.schema[key].defaultValue;
+        } else {
+          return this;
+        }
       }
       if (this.schema[key].type){
-        this._attributes[key] = global[this.schema[key].type](value);
+        if (this.schema[key].type === 'Date'){
+          this._attributes[key] = new global[this.schema[key].type](value);
+        } else {
+          this._attributes[key] = global[this.schema[key].type](value);
+        }
       } else {
         this._attributes[key] = value;
       }
@@ -51,7 +59,10 @@
         return this.storage
           .update(this._attributes.id, this._attributes)
           .pipe(function(item){
-             return new self.constructor(item);
+            self.each(self.schema, function(key){
+              self.setAttribute(key, item[key]);
+            });
+             return self;
           });
       }
       return this.storage
@@ -66,12 +77,8 @@
   }, {
     create: function(value){
       var Self = this;
-      return Self.prototype
-        .storage
-        .create(value)
-        .pipe(function(item){
-          return new Self(item);
-        });
+      var item = new Self(value);
+      return item.save();
     },
     get: function(id){
       var Self = this;
