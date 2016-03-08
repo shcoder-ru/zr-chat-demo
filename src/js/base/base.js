@@ -10,7 +10,11 @@
   };
 
   $.extend(Base.prototype, {
-    init: function(){}
+    extend: $.extend,
+    each: $.each,
+    map: $.map,
+    deferred: $.Deferred,
+    init: function(){},
   });
 
   Base.extend = function(protoProps, staticProps){
@@ -27,6 +31,7 @@
     $.extend(child.prototype, protoProps);
     child.prototype.constructor = child;
     child.__super__ = parent.prototype;
+    child.prototype.__super__ = child.__super__;
     return child;
   };
 

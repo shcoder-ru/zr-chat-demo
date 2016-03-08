@@ -51,6 +51,7 @@ module.exports = function(grunt){
           'src/js/base/model.js',
           'src/js/base/view.js',
           'src/js/base/controller.js',
+          'src/js/services/*.js',
           'src/js/models/*.js',
           'src/js/views/*.js',
           'src/js/controllers/*.js',

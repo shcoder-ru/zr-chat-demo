@@ -9842,7 +9842,11 @@ return jQuery;
   };
 
   $.extend(Base.prototype, {
-    init: function(){}
+    extend: $.extend,
+    each: $.each,
+    map: $.map,
+    deferred: $.Deferred,
+    init: function(){},
   });
 
   Base.extend = function(protoProps, staticProps){
@@ -9859,6 +9863,7 @@ return jQuery;
     $.extend(child.prototype, protoProps);
     child.prototype.constructor = child;
     child.__super__ = parent.prototype;
+    child.prototype.__super__ = child.__super__;
     return child;
   };
 
@@ -9873,13 +9878,93 @@ return jQuery;
   'use strict';
 
   var Model = global.Model = Base.extend({
-    update: function(){},
-    save: function(){},
-    remove: function(){}
+    _attributes: {},
+    init: function(data){
+      var self = this;
+      if (!data || typeof data !== 'object'){
+        throw new TypeError('"data" must be a object type');
+      }
+      if (!this.storage){
+        throw new TypeError('"storage" must be defined');
+      }
+      if (!this.schema){
+        throw new TypeError('"schema" must be defined');
+      }
+      this.each(this.schema, function(key){
+        self.setAttribute(key, data[key]);
+      });
+    },
+    setAttribute: function(key, value){
+      if (!this.schema[key]){
+        throw new TypeError('property "'+key+'" is unacceptable');
+      }
+      if (this.schema[key].required && typeof value === 'undefined'){
+        throw new TypeError('property "'+key+'" is required');
+      }
+      if (typeof value === 'undefined'){
+        return this;
+      }
+      if (this.schema[key].type){
+        this._attributes[key] = global[this.schema[key].type](value);
+      } else {
+        this._attributes[key] = value;
+      }
+      return this;
+    },
+    getAttribute: function(key){
+      if (!this.schema[key]){
+        throw new TypeError('property "'+key+'" is unacceptable');
+      }
+      return this._attributes[key];
+    },
+    save: function(){
+      var self = this;
+      if (this._attributes.id){
+        return this.storage
+          .update(this._attributes.id, this._attributes)
+          .pipe(function(item){
+             return new self.constructor(item);
+          });
+      }
+      return this.storage
+        .create(this._attributes)
+        .pipe(function(item){
+           return new self.constructor(item);
+        });
+    },
+    remove: function(id){
+      return this.storage.remove(id);
+    }
   }, {
-    create: function(){},
-    get: function(){},
-    find: function(){}
+    create: function(value){
+      var Self = this;
+      return Self.prototype
+        .storage
+        .create(value)
+        .pipe(function(item){
+          return new Self(item);
+        });
+    },
+    get: function(id){
+      var Self = this;
+      return this.prototype
+        .storage
+        .fetchOne(id)
+        .pipe(function(item){
+          return new Self(item);
+        });
+    },
+    find: function(){
+      var Self = this;
+      return Self.prototype
+        .storage
+        .fetch()
+        .pipe(function(list){
+          return Self.prototype.map(list, function(item){
+            return new Self(item);
+          });
+        });
+    }
   });
 
   return Model;
@@ -9893,10 +9978,20 @@ return jQuery;
   'use strict';
 
   var View = global.View = Base.extend({
-    renderTo: function(){
+    $: $,
+    data: {},
+    setData: function(data){
+      this.extend(this.data, data);
       return this;
     },
-    $: $
+    render: function(parent){
+      if (!parent || this.el){
+        return this;
+      }
+      this.el = this.$(this.template);
+      this.$(parent).append(this.el);
+      return this;
+    }
   }, {
     template: function(templateId){
       return $('#'+templateId).html();
@@ -9921,34 +10016,121 @@ return jQuery;
 
 })(window, jQuery, Base);
 /**
+ * Services/Storage
+ */
+
+;(function(global, Base, undefined){
+  'use strict';
+
+  var Storage = global.Storage = Base.extend({
+    storage: global.localStorage,
+    name: '',
+    init: function(name){
+      if (!name || typeof name !== 'string'){
+        throw new TypeError('"name" must be a string type');
+      }
+      this.name = name;
+    },
+    _fetchData: function(){
+      return JSON.parse(this.storage[this.name+'Collection'] || '[]');
+    },
+    _saveData: function(data){
+      this.storage[this.name+'Collection'] = JSON.stringify(data);
+    },
+    _getIndexById: function(id, data){
+      var i, len;
+      for (i = 0, len = data.length; i < len; i++){
+        if (data[i].id = id){
+          return i;
+        }
+      }
+      return -1;
+    },
+    create: function(value, cb){
+      var dfd = this.deferred();
+      var data = this._fetchData();
+      var id = Date.now();
+      value.id = id;
+      value.created = value.updated = new Date();
+      data.push(value);
+      this._saveData(data);
+      dfd.resolve(value);
+      return dfd.promise();
+    },
+    update: function(id, value){
+      var dfd = this.deferred();
+      var data = this._fetchData();
+      var index = this._getIndexById(id, data);
+      if (index === -1){
+        dfd.reject('Not found');
+        return dfd.promise();
+      }
+      this.extend(data[index], value);
+      value.updated = new Date();
+      this._saveData(data);
+      dfd.resolve(data[index]);
+      return dfd.promise();
+    },
+    fetchOne: function(id){
+      var dfd = this.deferred();
+      var data = this._fetchData();
+      var index = this._getIndexById(id, data);
+      if (index === -1){
+        dfd.reject('Not found');
+      } else {
+        dfd.resolve(data[index]);
+      }
+      return dfd.promise();
+    },
+    fetch: function(){
+      var dfd = this.deferred();
+      dfd.resolve(this._fetchData());
+      return dfd.promise();
+    },
+    remove: function(id){
+      var dfd = this.deferred();
+      var data = this._fetchData();
+      var index = this._getIndexById(id, data);
+      data.splice(index, 1);
+      this._saveData(data);
+      dfd.resolve();
+      return dfd.promise();
+    },
+    clear: function(){
+      var dfd = this.deferred();
+      this._saveData([]);
+      dfd.resolve();
+      return dfd.promise();
+    }
+  });
+
+  return Storage;
+
+})(window, Base);
+/**
  * Models/Chat
  */
 
-;(function(global, Model, undefined){
+;(function(global, Model, Storage, undefined){
   'use strict';
 
-  var ChatModel = global.ChatModel = Model.extend({
+  var MessageModel = global.MessageModel = Model.extend({
+    storage: new Storage('message'),
     schema: {
       id: {
         type: 'String',
-        length: 20,
-        id: 1
+        required: false
       },
       text: {
         type: 'String',
-        required: true,
-        length: 500
-      },
-      date: {
-        type: 'Date',
         required: true
       }
     }
   });
 
-  return ChatModel;
+  return MessageModel;
 
-})(window, Model);
+})(window, Model, Storage);
 /**
  * Views/ChatListItem
  */
@@ -9958,12 +10140,7 @@ return jQuery;
 
   var ChatListItemView = global.ChatListItemView = View.extend({
     template: View.template('chatListItem'),
-    renderTo: function(parent){
-      if (!parent){
-        return this;
-      }
-      this.el = this.$(this.template);
-      this.$(parent).append(this.el);
+    render: function(parent){
       return this;
     }
   });
@@ -9981,15 +10158,11 @@ return jQuery;
   var ChatListView = global.ChatListView = View.extend({
     itemsIndex: {},
     template: View.template('chatList'),
-    renderTo: function(parent){
-      if (!parent){
-        return this;
-      }
-      this.el = this.$(this.template);
-      this.$(parent).append(this.el);
-      return this;
+    render: function(parent){
+      // @TOD update
+      return this.__super__.render.call(this, parent);
     },
-    createItem: function(data){
+    addItem: function(data){
       // @TODO new ChatListItemView and append to itemsIndex
     }
   });
@@ -10001,19 +10174,38 @@ return jQuery;
  * Controllers/Chat
  */
 
-;(function(global, Controller, ChatModel, ChatListView, undefined){
+;(function(global, Controller, MessageModel, ChatListView, undefined){
   'use strict';
 
   var ChatController = global.ChatController = Controller.extend({
     view: new ChatListView(),
     init: function(){
-      this.view.renderTo('#chatView');
+
+      // var newItem = new MessageModel({
+      //   text: 'Test text'
+      // });
+      // newItem.save();
+
+      MessageModel
+        .find()
+        .done(function(items){
+          console.log('items:', items);
+        })
+        .fail(function(err){
+          console.log('err:', err);
+        });
+
+      this.view
+        .setData({
+          items: []
+        })
+        .render('#chatView');
     }
   });
 
   return ChatController;
 
-})(window, Controller, ChatModel, ChatListView);
+})(window, Controller, MessageModel, ChatListView);
 ;(function(ChatController){
   'use strict';
   var chatCtrl = new ChatController();

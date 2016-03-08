@@ -8,15 +8,11 @@
   var ChatListView = global.ChatListView = View.extend({
     itemsIndex: {},
     template: View.template('chatList'),
-    renderTo: function(parent){
-      if (!parent){
-        return this;
-      }
-      this.el = this.$(this.template);
-      this.$(parent).append(this.el);
-      return this;
+    render: function(parent){
+      // @TOD update
+      return this.__super__.render.call(this, parent);
     },
-    createItem: function(data){
+    addItem: function(data){
       // @TODO new ChatListItemView and append to itemsIndex
     }
   });
