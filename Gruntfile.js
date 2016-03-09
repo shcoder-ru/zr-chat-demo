@@ -155,11 +155,11 @@ module.exports = function(grunt){
     'watch'
   ]);
 
-  grunt.registerTask('test', ['karma']);
+  // grunt.registerTask('test', ['karma']);
 
   grunt.registerTask('build', [
     'jshint:app',
-    'karma:unitBuild',
+    // 'karma:unitBuild',
     'ejs:prod',
     'less:prod',
     'concat:app',
