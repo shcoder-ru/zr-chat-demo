@@ -13,18 +13,29 @@
       <div class="chat">
         <script type="text/template" id="chatListItem">
           <div class="chat-list-item">
-            <figure>
-              <div class="chat-list-item-photo"></div>
-            </figure>
-            <div class="chat-list-item-text">Test Text</div>
-            <div class="chat-list-item-actions">
-              <button>Reply</button>
+            <div class="chat-list-item-photo">
+              <img data-avatar>
             </div>
-            <div class="chat-list"></div>
+            <div class="chat-list-item-text" data-text></div>
+            <div class="chat-list-item-actions">
+              <button type="button" class="reply" data-reply>
+                Reply
+              </button>
+            </div>
+            <div class="chat-list" data-chat-list></div>
           </div>
         </script>
         <script type="text/template" id="chatList">
-          <div class="chat-list"></div>
+          <div class="chat-list" data-chat-list></div>
+        </script>
+        <script type="text/template" id="chatForm">
+          <form class="chat-form">
+            <div class="chat-form-header">Fixed form</div>
+            <textarea class="chat-form-text" data-value></textarea>
+            <button type="button" class="submit" data-submit>
+              Submit
+            </button>
+          </form>
         </script>
         <div id="chatView"></div>
       </div>

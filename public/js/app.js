@@ -9844,6 +9844,7 @@ return jQuery;
   $.extend(Base.prototype, {
     extend: $.extend,
     each: $.each,
+    map: $.map,
     deferred: $.Deferred,
     init: function(){},
   });
@@ -9870,6 +9871,41 @@ return jQuery;
 
 })(window, jQuery);
 /**
+ * Base/Event
+ */
+
+;(function(global, $, Base, undefined){
+  'use strict';
+
+  var Event = global.Event = Base.extend({
+    init: function(){
+      this.handlers = {};
+    },
+    on: function(name, fn){
+      if (typeof name !== 'string'){
+        throw new TypeError('"name" must be a string type');
+      }
+      if (typeof fn !== 'function'){
+        throw new TypeError('"fn" must be a function');
+      }
+      this.handlers[name] = this.handlers[name] || [];
+      this.handlers[name].push(fn);
+    },
+    trigger: function(name){
+      var i, len;
+      if (!this.handlers[name]){
+        return;
+      }
+      for (i = 0, len = this.handlers[name].length; i < len; i++){
+        this.handlers[name][i].apply(this, arguments);
+      }
+    }
+  });
+
+  return Event;
+
+})(window, jQuery, Base);
+/**
  * Base/Model
  */
 
@@ -9877,9 +9913,9 @@ return jQuery;
   'use strict';
 
   var Model = global.Model = Base.extend({
-    _attributes: {},
     init: function(data){
       var self = this;
+      this._attributes = {};
       if (!data || typeof data !== 'object'){
         throw new TypeError('"data" must be a object type');
       }
@@ -9947,27 +9983,27 @@ return jQuery;
     }
   }, {
     create: function(value){
-      var Self = this;
-      var item = new Self(value);
+      var self = this;
+      var item = new self.prototype.constructor(value);
       return item.save();
     },
     get: function(id){
-      var Self = this;
+      var self = this;
       return this.prototype
         .storage
         .fetchOne(id)
         .pipe(function(item){
-          return new Self(item);
+          return new self.prototype.constructor(item);
         });
     },
     find: function(){
-      var Self = this;
-      return Self.prototype
+      var self = this;
+      return self.prototype
         .storage
         .fetch()
         .pipe(function(list){
-          Self.prototype.each(list, function(i, item){
-            list[i] = new Self(item);
+          self.prototype.each(list, function(i, item){
+            list[i] = new self.prototype.constructor(item);
           });
           return list;
         });
@@ -9986,22 +10022,26 @@ return jQuery;
 
   var View = global.View = Base.extend({
     $: $,
-    data: {},
+    init: function(){
+      this._inserted = false;
+      this.data = {};
+      this.el = this.$(this.template);
+    },
     setData: function(data){
       this.extend(this.data, data);
       return this;
     },
     render: function(parent){
-      if (!parent || this.el){
+      if (!parent || this._inserted){
         return this;
       }
-      this.el = this.$(this.template);
       this.$(parent).append(this.el);
+      this._inserted = true;
       return this;
     }
   }, {
     template: function(templateId){
-      return $('#'+templateId).html();
+      return this.prototype.$('#'+templateId).html();
     }
   });
 
@@ -10012,16 +10052,26 @@ return jQuery;
  * Base/Controller
  */
 
-;(function(global, $, Base, undefined){
+;(function(global, $, Base, Event, undefined){
   'use strict';
 
   var Controller = global.Controller = Base.extend({
-    // @TODO methods and properties
+    init: function(){
+      var self = this;
+      self.event = new Event();
+      if (typeof self.events === 'object'){
+        self.each(self.events, function(name, handler){
+          self.event.on(name, function(){
+            handler.apply(self, arguments);
+          });
+        });
+      }
+    }
   });
 
   return Controller;
 
-})(window, jQuery, Base);
+})(window, jQuery, Base, Event);
 /**
  * Services/Storage
  */
@@ -10031,7 +10081,6 @@ return jQuery;
 
   var Storage = global.Storage = Base.extend({
     storage: global.localStorage,
-    name: '',
     init: function(name){
       if (!name || typeof name !== 'string'){
         throw new TypeError('"name" must be a string type');
@@ -10053,11 +10102,14 @@ return jQuery;
       }
       return -1;
     },
-    create: function(value, cb){
+    create: function(value){
       var dfd = this.deferred();
       var data = this._fetchData();
-      var id = Date.now();
-      value.id = id;
+      var id = Date.now()*100+Math.round(Math.random()*100);
+      var increment = this.storage[this.name+'Autoincrement'];
+      increment = increment ? parseInt(increment) : 0;
+      value.id = ++increment;
+      this.storage[this.name+'Autoincrement'] = String(increment);
       value.created = value.updated = new Date();
       data.push(value);
       this._saveData(data);
@@ -10105,6 +10157,7 @@ return jQuery;
     },
     clear: function(){
       var dfd = this.deferred();
+      this.storage.removeItem(this.name+'Autoincrement');
       this._saveData([]);
       dfd.resolve();
       return dfd.promise();
@@ -10137,6 +10190,11 @@ return jQuery;
         type: 'String',
         required: true
       },
+      avatar: {
+        type: 'String',
+        required: false,
+        defaultValue: '/img/default-avatar.png'
+      },
       created: {
         type: 'Date',
         required: false
@@ -10158,10 +10216,95 @@ return jQuery;
 ;(function(global, View, undefined){
   'use strict';
 
+  var ChatFormView = global.ChatFormView = View.extend({
+    template: View.template('chatForm'),
+    init: function(event){
+      var self = this;
+      var submitHandler = function(){
+        var value = self.valueEl.val();
+        if (!value){
+          return;
+        }
+        self.event.trigger('submit', {
+          parentId: self.parentId || 0,
+          text: value
+        });
+      };
+      this._isOpened = false;
+      this.__super__.init.call(this);
+      this.event = event;
+      this.hide();
+      this.el.click(function(e){
+        e.stopPropagation();
+      });
+      this.$('body').click(function(){
+        self.close(true);
+      });
+      this.valueEl = this.el.find('[data-value]');
+      this.submitEl = this.el.find('[data-submit]');
+      this.submitEl.click(submitHandler);
+      this.valueEl.keypress(function(e) {
+        if(e.which === 13 && !e.shiftKey) {
+          submitHandler();
+        }
+      });
+    },
+    hide: function(){
+      this.el.hide();
+    },
+    show: function(){
+      var self = this;
+      this.el.show();
+      setTimeout(function(){
+        self.valueEl.focus();
+      });
+    },
+    open: function(parentId){
+      var self = this;
+      this.parentId = parentId;
+      this.el.slideDown(function(){
+        self._isOpened = true;
+        self.valueEl.focus();
+      });
+    },
+    close: function(noForced){
+      var self = this;
+      if (this._isOpened || !noForced){
+        this._isOpened = false;
+        this.el.slideUp(function(){
+          self.valueEl.val('');
+          self.parentId = 0;
+        });
+      }
+    }
+  });
+
+  return ChatFormView;
+
+})(window, View);
+/**
+ * Views/ChatListItem
+ */
+
+;(function(global, View, undefined){
+  'use strict';
+
   var ChatListItemView = global.ChatListItemView = View.extend({
     template: View.template('chatListItem'),
+    init: function(event){
+      var self = this;
+      this.__super__.init.call(this);
+      this.listEl = this.el.find('[data-chat-list]');
+      this.textEl = this.el.find('[data-text]');
+      this.avatarEl = this.el.find('[data-avatar]');
+      this.el.find('.reply').click(function(){
+        event.trigger('reply', self.data.item.getAttribute('id'));
+      });
+    },
     render: function(parent){
       this.__super__.render.call(this, parent);
+      this.textEl.text(this.data.item.getAttribute('text'));
+      this.avatarEl.attr('src', this.data.item.getAttribute('avatar'));
       return this;
     }
   });
@@ -10177,25 +10320,50 @@ return jQuery;
   'use strict';
 
   var ChatListView = global.ChatListView = View.extend({
-    itemsIndex: {},
     template: View.template('chatList'),
+    init: function(event){
+      this.__super__.init.call(this);
+      this.itemsIndex = {};
+      this.event = event;
+    },
     render: function(parent){
       var self = this;
-      this.__super__.render.call(this, parent);
-      if (this.data.items && this.data.items.length > 0){
-        this.each(this.data.items, function(key, item){
-          if (item.getAttribute('parentId') === 0){
-            self.addItem(item);
+      var lastEl;
+      self.__super__.render.call(self, parent);
+      if (self.data.items && self.data.items.length > 0){
+
+        self.each(self.data.items, function(key, item){
+          var itemView, id = item.getAttribute('id');
+          if (self.itemsIndex[id]){
+            return;
           }
+          itemView = new ChatListItemView(self.event);
+          itemView.setData({item: item});
+          self.itemsIndex[id] = itemView;
+          lastEl = itemView.el;
         });
+
+        self.each(self.itemsIndex, function(id, itemView){
+          var parentEl;
+          var parentId = itemView.data.item.getAttribute('parentId');
+          if (parentId === 0){
+            parentEl = self.el;
+          } else {
+            parentEl = self.itemsIndex[parentId].listEl;
+          }
+
+          itemView.render(parentEl);
+
+        });
+
+        if (lastEl){
+          self.$('html, body').animate({
+            scrollTop: lastEl.offset().top - parseInt($('.main').css('padding-top'))
+          }, 400);
+        }
+
       }
-      return this;
-    },
-    addItem: function(item){
-      var itemView = new ChatListItemView();
-      itemView
-        .setData({item: item})
-        .render(this.el);
+      return self;
     }
   });
 
@@ -10206,44 +10374,103 @@ return jQuery;
  * Controllers/Chat
  */
 
-;(function(global, Controller, MessageModel, ChatListView, undefined){
+;(function(global, Controller, MessageModel, ChatListView, ChatFormView, undefined){
   'use strict';
 
   var ChatController = global.ChatController = Controller.extend({
-    view: new ChatListView(),
     init: function(){
 
       var self = this;
+      self.__super__.init.call(this);
+      self.listView = new ChatListView(self.event);
+      self.formView = new ChatFormView(self.event);
+      self.formView.render('#chatView');
 
-      // MessageModel.create({
-      //   parentId: 1457464532891,
-      //   text: 'Test text'
-      // }).done(function(item){
-      //   console.log(item);
-      // });
+      self.load();
 
+    },
+    events: {
+      reply: function(event, id){
+        this.formView.open(id);
+      },
+      submit: function(event, data){
+        var self = this;
+        MessageModel
+          .create(data)
+          .done(function(){
+            self.load();
+            self.formView.close();
+          })
+          .fail(function(err){
+            console.log(err);
+          });
+      }
+    },
+    load: function(){
+      var self = this;
       MessageModel
         .find()
         .done(function(items){
-
-          console.log(items);
-
-          self.view
+          self.listView
             .setData({items: items})
             .render('#chatView');
-
+          if (items.length === 0){
+            self.formView.show();
+          }
         })
         .fail(function(err){
           console.log('err:', err);
         });
-
     }
   });
 
   return ChatController;
 
-})(window, Controller, MessageModel, ChatListView);
-;(function(ChatController){
+})(window, Controller, MessageModel, ChatListView, ChatFormView);
+;(function(ChatController, Storage, MessageModel){
   'use strict';
-  var chatCtrl = new ChatController();
-})(ChatController);
+
+
+  /**
+   * Test messages
+   */
+  var tmpStorage = new Storage('tmp');
+
+  tmpStorage
+    .fetchOne('mockupFirstLoaded')
+    .fail(function(){
+
+      var mockupText = 'Lorem ipsum dolor sit amet, consectetur '+
+      'adipisicing elit, sed do eiusmod tempor incididunt ut labore '+
+      'et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud '+
+      'exercitation ullamco laboris nisi ut aliquip ex ea commodo '+
+      'consequat.';
+
+      MessageModel
+        .create({text: mockupText})
+        .done(function(message){
+          MessageModel.create({
+            parentId: message.getAttribute('id'),
+            text: mockupText
+          });
+        });
+      MessageModel.create({text: mockupText});
+
+      /**
+       * Clear only messages
+       * new Storage('message').clear();
+       *
+       * Clear all
+       * localStorage.clear();
+       */
+
+      tmpStorage.create({id: 'mockupFirstLoaded'});
+
+    });
+
+  /**
+   * Init controller
+   */
+  new ChatController();
+
+})(ChatController, Storage, MessageModel);

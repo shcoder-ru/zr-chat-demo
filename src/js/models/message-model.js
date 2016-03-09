@@ -21,6 +21,11 @@
         type: 'String',
         required: true
       },
+      avatar: {
+        type: 'String',
+        required: false,
+        defaultValue: '/img/default-avatar.png'
+      },
       created: {
         type: 'Date',
         required: false

@@ -7,7 +7,6 @@
 
   var Storage = global.Storage = Base.extend({
     storage: global.localStorage,
-    name: '',
     init: function(name){
       if (!name || typeof name !== 'string'){
         throw new TypeError('"name" must be a string type');
@@ -29,11 +28,14 @@
       }
       return -1;
     },
-    create: function(value, cb){
+    create: function(value){
       var dfd = this.deferred();
       var data = this._fetchData();
-      var id = Date.now();
-      value.id = id;
+      var id = Date.now()*100+Math.round(Math.random()*100);
+      var increment = this.storage[this.name+'Autoincrement'];
+      increment = increment ? parseInt(increment) : 0;
+      value.id = ++increment;
+      this.storage[this.name+'Autoincrement'] = String(increment);
       value.created = value.updated = new Date();
       data.push(value);
       this._saveData(data);
@@ -81,6 +83,7 @@
     },
     clear: function(){
       var dfd = this.deferred();
+      this.storage.removeItem(this.name+'Autoincrement');
       this._saveData([]);
       dfd.resolve();
       return dfd.promise();

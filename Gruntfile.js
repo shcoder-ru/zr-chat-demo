@@ -48,6 +48,7 @@ module.exports = function(grunt){
         src: [
           'node_modules/jquery/dist/jquery.js',
           'src/js/base/base.js',
+          'src/js/base/event.js',
           'src/js/base/model.js',
           'src/js/base/view.js',
           'src/js/base/controller.js',

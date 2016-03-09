@@ -6,9 +6,9 @@
   'use strict';
 
   var Model = global.Model = Base.extend({
-    _attributes: {},
     init: function(data){
       var self = this;
+      this._attributes = {};
       if (!data || typeof data !== 'object'){
         throw new TypeError('"data" must be a object type');
       }
@@ -76,27 +76,27 @@
     }
   }, {
     create: function(value){
-      var Self = this;
-      var item = new Self(value);
+      var self = this;
+      var item = new self.prototype.constructor(value);
       return item.save();
     },
     get: function(id){
-      var Self = this;
+      var self = this;
       return this.prototype
         .storage
         .fetchOne(id)
         .pipe(function(item){
-          return new Self(item);
+          return new self.prototype.constructor(item);
         });
     },
     find: function(){
-      var Self = this;
-      return Self.prototype
+      var self = this;
+      return self.prototype
         .storage
         .fetch()
         .pipe(function(list){
-          Self.prototype.each(list, function(i, item){
-            list[i] = new Self(item);
+          self.prototype.each(list, function(i, item){
+            list[i] = new self.prototype.constructor(item);
           });
           return list;
         });

@@ -35,5 +35,15 @@ grunt test
 ``` sh
 grunt build
 ```
+##### Clear messages    
+browser console    
+``` javascript
+new Storage('message').clear();
+```
+##### Clear all    
+browser console    
+``` javascript
+localStorage.clear();
+```
 ##### Screenshot    
 ![Screenshot](https://raw.githubusercontent.com/shcoder-ru/zr-chat-demo/master/Screenshot.png)
